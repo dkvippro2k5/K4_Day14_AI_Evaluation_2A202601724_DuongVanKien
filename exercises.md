@@ -303,20 +303,25 @@ thay đổi Context Recall hay không.
 
 | ID | Recall before | Recall after | Precision before | Precision after | Delta Precision |
 |---|---:|---:|---:|---:|---:|
-| | | | | | |
-| | | | | | |
-| | | | | | |
-| | | | | | |
-| | | | | | |
-| **Avg** | | | | | |
+| E01 | 0.893 | 0.893 | 0.950 | 0.950 | 0.000 |
+| E02 | 0.875 | 0.875 | 0.917 | 0.867 | -0.050 |
+| E03 | 0.840 | 0.840 | 0.917 | 1.000 | 0.083 |
+| H02 | 0.854 | 0.854 | 0.833 | 1.000 | 0.167 |
+| A02 | 0.957 | 0.957 | 0.700 | 1.000 | 0.300 |
+| **Avg** | 0.884 | 0.884 | 0.863 | 0.963 | 0.100 |
+
+Chọn 5 case có Context Precision < 1.0 trong benchmark gốc (E01, E02, E03, H02,
+A02) để rerank có cơ hội tạo khác biệt rõ. Dùng `rerank_by_overlap()` với
+`query = question` (không dùng `expected_answer`, vì ở production reranker chỉ
+có câu hỏi thật của người dùng).
 
 **Tại sao Recall dự kiến không đổi?**
 
-> *Câu trả lời:*
+> Recall không đổi vì công thức `evaluate_context_recall()` tính trên **union** của toàn bộ chunks đã retrieve (`⋃ _tokenize(chunk)`), không phụ thuộc thứ tự các chunk trong list. `rerank_by_overlap()` chỉ sắp xếp lại vị trí các chunk hiện có bằng `sorted()`, không thêm/bớt chunk nào khỏi tập — nên union tokens giữ nguyên và Recall giữ nguyên tuyệt đối ở cả 5/5 case (đúng như bảng trên: Recall before = Recall after ở mọi dòng). Đây là bằng chứng thực nghiệm khớp với lý thuyết: reranking chỉ có thể cải thiện Precision (rank-aware), không thể cải thiện Recall (set-based).
 
 **Khi nào reranking không đủ và cần sửa retriever/query/chunking?**
 
-> *Câu trả lời:*
+> Reranking không đủ khi vấn đề nằm ở **recall thấp** (retriever không lấy đủ evidence ngay từ đầu) — rerank chỉ sắp xếp lại những gì đã có, không thể tạo ra evidence chưa được retrieve. Ví dụ A01 (case out-of-scope) có Context Recall chỉ 0.519 trong benchmark gốc — không phải vì retriever xếp hạng kém mà vì corpus thực sự không có nhiều nội dung liên quan (đúng bản chất out-of-scope), nên cần sửa **query** (mở rộng câu hỏi, thêm synonym) hoặc **chunking** (chunk nhỏ hơn để tăng độ chi tiết) chứ rerank không giúp được. Ngoài ra, case E02 trong bảng trên cho thấy rerank có thể **làm giảm Precision** (-0.050): reranker lexical đơn giản dựa trên overlap với `question` đôi khi xếp một chunk ít liên quan lên cao hơn một chunk thực sự relevant nhưng dùng từ vựng khác câu hỏi (paraphrase) — đây là giới hạn của reranker từ-vựng, cần chuyển sang cross-encoder/semantic reranker thực thụ hoặc cải thiện retriever gốc (dùng embedding thay vì BM25) khi gặp trường hợp này lặp lại nhiều.
 
 ---
 
@@ -330,11 +335,11 @@ Hoàn thành `reflection.md` bằng kết quả thật từ Exercise 3.2.
 
 Hoàn thành kiểm tra cuối trong khoảng 16:50–17:00.
 
-- [ ] Tất cả required tests pass.
-- [ ] `golden_dataset.json` validate thành công.
-- [ ] Exercise 3.1 hoàn thành trong file JSON và bảng kết quả phía trên.
-- [ ] Exercise 3.2 có năm metrics, aggregate report và ba cases thấp nhất.
-- [ ] Exercise 3.3 có rubric 1–5 và bias controls.
-- [ ] `reflection.md` có ba failure analyses và regression strategy.
-- [ ] Đã copy `template.py` thành `solution/solution.py`.
-- [ ] Exercise 3.4 và 3.5 chỉ làm nếu chọn bonus.
+- [x] Tất cả required tests pass.
+- [x] `golden_dataset.json` validate thành công.
+- [x] Exercise 3.1 hoàn thành trong file JSON và bảng kết quả phía trên.
+- [x] Exercise 3.2 có năm metrics, aggregate report và ba cases thấp nhất.
+- [x] Exercise 3.3 có rubric 1–5 và bias controls.
+- [x] `reflection.md` có ba failure analyses và regression strategy.
+- [x] Đã copy `template.py` thành `solution/solution.py`.
+- [x] Exercise 3.5 hoàn thành (bonus reranking, +5). Exercise 3.4 không làm (bonus tùy chọn).
